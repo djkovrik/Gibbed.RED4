@@ -37,7 +37,7 @@ namespace ScriptCachePatchTest
             const bool validate = true;
 
             CacheFile cache;
-            var fileBytes = File.ReadAllBytes(args[0]);
+            var fileBytes = File.ReadAllBytes("final.redscripts");
             using (var input = new MemoryStream(fileBytes, false))
             {
                 cache = CacheFile.Load(input, validate);
@@ -48,10 +48,10 @@ namespace ScriptCachePatchTest
             var mySourceFile = new SourceFileDefinition(@"_\gibbed\exec.script");
             cache.Definitions.Add(mySourceFile);
 
-            AddExecCommandSTS(cache, mySourceFile);
-            AddMinimapScaler(cache);
-
-            PatchJohnnySkillChecks(cache);
+            //AddExecCommandSTS(cache, mySourceFile);
+            //AddMinimapScaler(cache);
+            //PatchJohnnySkillChecks(cache);
+            EveryoneKillableTest(cache);
 
             byte[] testCacheBytes;
             using (var output = new MemoryStream())
@@ -332,6 +332,15 @@ namespace ScriptCachePatchTest
             // Change a JumpIfFalse to Jump.
             var target5 = cache.GetFunction("PerksMenuAttributeDisplayController", "SetHovered;Bool");
             target5.Code[10] = new Instruction(Opcode.Jump, target5.Code[10].Argument);
+        }
+
+        private static void EveryoneKillableTest(CacheFile cache)
+        {
+            var playerPuppet = cache.GetClass("PlayerPuppet");
+            var playerPuppetIsTargetChildNPC = playerPuppet.GetFunction("IsTargetChildNPC;PlayerPuppetEntity");
+            playerPuppetIsTargetChildNPC.Code[24] = new Instruction(Opcode.BoolFalse);
+            var playerPuppetIsTargetFriendlyNPC = playerPuppet.GetFunction("IsTargetFriendlyNPC;PlayerPuppetEntity");
+            playerPuppetIsTargetFriendlyNPC.Code[53] = new Instruction(Opcode.BoolFalse);
         }
 
         private static PropertyDefinition CreateNativeProperty(string name, NativeDefinition type)

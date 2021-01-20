@@ -32,6 +32,7 @@ namespace Gibbed.RED4.ScriptFormats.Definitions
 
         private static readonly LocalFlags KnownFlags =
             LocalFlags.Unknown0;
+        public int Unknown28;
 
         internal override void Serialize(IDefinitionWriter writer)
         {
