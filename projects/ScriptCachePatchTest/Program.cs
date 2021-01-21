@@ -51,7 +51,8 @@ namespace ScriptCachePatchTest
             //AddExecCommandSTS(cache, mySourceFile);
             //AddMinimapScaler(cache);
             //PatchJohnnySkillChecks(cache);
-            EveryoneKillableTest(cache);
+            //EveryoneKillableTest(cache);
+            SortQuestLogByLevelDesc(cache);
 
             byte[] testCacheBytes;
             using (var output = new MemoryStream())
@@ -343,6 +344,22 @@ namespace ScriptCachePatchTest
             playerPuppetIsTargetFriendlyNPC.Code[53] = new Instruction(Opcode.BoolFalse);
         }
 
+        private static void SortQuestLogByLevelDesc(CacheFile cache)
+        {
+            var compareBuilderClassIntDesc = cache.GetFunction("CompareBuilder", "IntDesc;Int32Int32");
+            var questListVirtualNestedDataViewSortItems = cache.GetFunction("QuestListVirtualNestedDataView", "SortItems;CompareBuilderVirutalNestedListDataVirutalNestedListData");
+
+            var intNative = cache.GetNative("Int32");
+            var questListItemDataClass = cache.GetClass("QuestListItemData");
+            var dataProperty = CreateNativePropertySorting("m_recommendedLevel", intNative);
+            dataProperty.Parent = questListItemDataClass;
+
+            // TODO
+            questListVirtualNestedDataViewSortItems.Code[22] = new Instruction(Opcode.FinalFunc, compareBuilderClassIntDesc, 131);
+            questListVirtualNestedDataViewSortItems.Code[25] = new Instruction(Opcode.ObjectVar, dataProperty, 148);
+            questListVirtualNestedDataViewSortItems.Code[28] = new Instruction(Opcode.ObjectVar, dataProperty, 161);
+        }
+
         private static PropertyDefinition CreateNativeProperty(string name, NativeDefinition type)
         {
             return new PropertyDefinition()
@@ -351,6 +368,17 @@ namespace ScriptCachePatchTest
                 Flags = PropertyFlags.IsNative | PropertyFlags.Unknown10,
                 Type = type,
                 Visibility = Visibility.Protected,
+            };
+        }
+
+        private static PropertyDefinition CreateNativePropertySorting(string name, NativeDefinition type)
+        {
+            return new PropertyDefinition()
+            {
+                Name = name,
+                Flags = PropertyFlags.Unknown10,
+                Type = type,
+                Visibility = Visibility.Public,
             };
         }
     }
