@@ -26,6 +26,7 @@ using System.Linq;
 using Gibbed.RED4.ScriptFormats;
 using Gibbed.RED4.ScriptFormats.Definitions;
 using Gibbed.RED4.ScriptFormats.Emit;
+using Gibbed.RED4.ScriptFormats.Instructions;
 using Gibbed.RED4.ScriptHelpers;
 
 namespace ScriptCachePatchTest
@@ -52,7 +53,7 @@ namespace ScriptCachePatchTest
             //AddMinimapScaler(cache);
             //PatchJohnnySkillChecks(cache);
             //EveryoneKillableTest(cache);
-            SortQuestLogByLevelDesc(cache);
+            SortQuestLogByLevelAsc(cache);
 
             byte[] testCacheBytes;
             using (var output = new MemoryStream())
@@ -344,20 +345,20 @@ namespace ScriptCachePatchTest
             playerPuppetIsTargetFriendlyNPC.Code[53] = new Instruction(Opcode.BoolFalse);
         }
 
-        private static void SortQuestLogByLevelDesc(CacheFile cache)
+        private static void SortQuestLogByLevelAsc(CacheFile cache)
         {
-            var compareBuilderClassIntDesc = cache.GetFunction("CompareBuilder", "IntDesc;Int32Int32");
+            var compareBuilderClass = cache.GetClass("CompareBuilder");
+            var compareBuilderClassIntAsc = compareBuilderClass.GetFunction("IntAsc;Int32Int32");
             var questListVirtualNestedDataViewSortItems = cache.GetFunction("QuestListVirtualNestedDataView", "SortItems;CompareBuilderVirutalNestedListDataVirutalNestedListData");
 
-            var intNative = cache.GetNative("Int32");
             var questListItemDataClass = cache.GetClass("QuestListItemData");
-            var dataProperty = CreateNativePropertySorting("m_recommendedLevel", intNative);
-            dataProperty.Parent = questListItemDataClass;
+            var questListItemDataClassRecommendedLevelProperty = questListItemDataClass.Properties[7];
 
-            // TODO
-            questListVirtualNestedDataViewSortItems.Code[22] = new Instruction(Opcode.FinalFunc, compareBuilderClassIntDesc, 131);
-            questListVirtualNestedDataViewSortItems.Code[25] = new Instruction(Opcode.ObjectVar, dataProperty, 148);
-            questListVirtualNestedDataViewSortItems.Code[28] = new Instruction(Opcode.ObjectVar, dataProperty, 161);
+            var compareBuilderClassIntAscFunc = new FinalFunc(0, Convert.ToUInt16(compareBuilderClassIntAsc.SourceLine), compareBuilderClassIntAsc);
+
+            questListVirtualNestedDataViewSortItems.Code[22] = new Instruction(Opcode.FinalFunc, compareBuilderClassIntAscFunc, 131);
+            questListVirtualNestedDataViewSortItems.Code[25] = new Instruction(Opcode.ObjectVar, questListItemDataClassRecommendedLevelProperty, 148);
+            questListVirtualNestedDataViewSortItems.Code[28] = new Instruction(Opcode.ObjectVar, questListItemDataClassRecommendedLevelProperty, 161);
         }
 
         private static PropertyDefinition CreateNativeProperty(string name, NativeDefinition type)
@@ -378,7 +379,7 @@ namespace ScriptCachePatchTest
                 Name = name,
                 Flags = PropertyFlags.Unknown10,
                 Type = type,
-                Visibility = Visibility.Public,
+                Visibility = Visibility.Public
             };
         }
     }
