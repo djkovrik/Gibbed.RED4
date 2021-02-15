@@ -53,7 +53,10 @@ namespace ScriptCachePatchTest
             //AddMinimapScaler(cache);
             //PatchJohnnySkillChecks(cache);
             //EveryoneKillableTest(cache);
-            SortQuestLogByLevelAsc(cache);
+            //SortDialerRemoveQuestRelated(cache);
+            //SortMessagesByNameAsc(cache);
+            //SortQuestLogByLevelAsc(cache);
+            TestFunctionsDefs(cache);
 
             byte[] testCacheBytes;
             using (var output = new MemoryStream())
@@ -63,7 +66,7 @@ namespace ScriptCachePatchTest
                 testCacheBytes = output.ToArray();
             }
 
-            File.WriteAllBytes("test_patch.redscripts", testCacheBytes);
+            File.WriteAllBytes("final-test.redscripts", testCacheBytes);
         }
 
         private static void RemoveStaticArraySizeUsage(CacheFile cache)
@@ -336,6 +339,15 @@ namespace ScriptCachePatchTest
             target5.Code[10] = new Instruction(Opcode.Jump, target5.Code[10].Argument);
         }
 
+        private static void TestFunctionsDefs(CacheFile cache)
+        {
+            var scriptableSystemClass = cache.GetClass("ScriptableSystem");
+            var getGameInstanceFunction = scriptableSystemClass.Functions[1];
+            var questMappinControllerClass = cache.GetClass("QuestMappinController");
+            getGameInstanceFunction.Parent = questMappinControllerClass;
+            questMappinControllerClass.Functions.Insert(0, getGameInstanceFunction);
+        }
+
         private static void EveryoneKillableTest(CacheFile cache)
         {
             var playerPuppet = cache.GetClass("PlayerPuppet");
@@ -345,16 +357,45 @@ namespace ScriptCachePatchTest
             playerPuppetIsTargetFriendlyNPC.Code[53] = new Instruction(Opcode.BoolFalse);
         }
 
+        private static void SortDialerRemoveQuestRelated(CacheFile cache)
+        {
+            var dialerContactDataViewSortItem = cache.GetFunction("DialerContactDataView", "SortItem;IScriptableIScriptable");
+
+            dialerContactDataViewSortItem.Code[20] = new Instruction(Opcode.Nop);
+            dialerContactDataViewSortItem.Code[21] = new Instruction(Opcode.BoolFalse);
+            dialerContactDataViewSortItem.Code[23] = new Instruction(Opcode.Nop);
+            dialerContactDataViewSortItem.Code[24] = new Instruction(Opcode.BoolFalse);
+        }
+
+        private static void SortMessagesByNameAsc(CacheFile cache)
+        {
+            var compareBuilderClass = cache.GetClass("CompareBuilder");
+            var compareBuilderClassStringAsc = compareBuilderClass.GetFunction("UnicodeStringAsc;StringString");
+            var ccompareBuilderClassStringAscFunc = new FinalFunc(0, Convert.ToUInt16(compareBuilderClassStringAsc.SourceLine), compareBuilderClassStringAsc);
+            var messengerContactDataViewSortItems = cache.GetFunction("MessengerContactDataView", "SortItems;CompareBuilderVirutalNestedListDataVirutalNestedListData");
+
+            var contactDataClass = cache.GetClass("ContactData");
+            var contactDataClassLocalizedNameProperty = contactDataClass.Properties[1];
+
+            messengerContactDataViewSortItems.Code[27] = new Instruction(Opcode.Nop);
+            messengerContactDataViewSortItems.Code[28] = new Instruction(Opcode.Int32Zero);
+            messengerContactDataViewSortItems.Code[34] = new Instruction(Opcode.Nop);
+            messengerContactDataViewSortItems.Code[35] = new Instruction(Opcode.Int32Zero);
+
+            messengerContactDataViewSortItems.Code[39] = new Instruction(Opcode.FinalFunc, ccompareBuilderClassStringAscFunc, 131);
+            messengerContactDataViewSortItems.Code[42] = new Instruction(Opcode.ObjectVar, contactDataClassLocalizedNameProperty, 148);
+            messengerContactDataViewSortItems.Code[45] = new Instruction(Opcode.ObjectVar, contactDataClassLocalizedNameProperty, 161);
+        }
+
         private static void SortQuestLogByLevelAsc(CacheFile cache)
         {
             var compareBuilderClass = cache.GetClass("CompareBuilder");
             var compareBuilderClassIntAsc = compareBuilderClass.GetFunction("IntAsc;Int32Int32");
+            var compareBuilderClassIntAscFunc = new FinalFunc(0, Convert.ToUInt16(compareBuilderClassIntAsc.SourceLine), compareBuilderClassIntAsc);
             var questListVirtualNestedDataViewSortItems = cache.GetFunction("QuestListVirtualNestedDataView", "SortItems;CompareBuilderVirutalNestedListDataVirutalNestedListData");
 
             var questListItemDataClass = cache.GetClass("QuestListItemData");
             var questListItemDataClassRecommendedLevelProperty = questListItemDataClass.Properties[7];
-
-            var compareBuilderClassIntAscFunc = new FinalFunc(0, Convert.ToUInt16(compareBuilderClassIntAsc.SourceLine), compareBuilderClassIntAsc);
 
             questListVirtualNestedDataViewSortItems.Code[22] = new Instruction(Opcode.FinalFunc, compareBuilderClassIntAscFunc, 131);
             questListVirtualNestedDataViewSortItems.Code[25] = new Instruction(Opcode.ObjectVar, questListItemDataClassRecommendedLevelProperty, 148);
@@ -369,17 +410,6 @@ namespace ScriptCachePatchTest
                 Flags = PropertyFlags.IsNative | PropertyFlags.Unknown10,
                 Type = type,
                 Visibility = Visibility.Protected,
-            };
-        }
-
-        private static PropertyDefinition CreateNativePropertySorting(string name, NativeDefinition type)
-        {
-            return new PropertyDefinition()
-            {
-                Name = name,
-                Flags = PropertyFlags.Unknown10,
-                Type = type,
-                Visibility = Visibility.Public
             };
         }
     }
